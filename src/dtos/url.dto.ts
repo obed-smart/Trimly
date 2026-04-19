@@ -34,7 +34,7 @@ export const shortUrlSchema = z.object({
 });
 
 export const updatedShortCodeSchema = z.object({
-  customAlias: z
+  shortCode: z
     .string()
     .regex(
       /^[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$/,

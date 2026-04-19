@@ -1,4 +1,4 @@
-
+import { Request, Response } from 'express';
 import UrlService from '../services/url.services.js';
 import catchAsync from '../utils/catchAsync.js';
 import logger from '../utils/logger.js';
@@ -19,10 +19,18 @@ class UrlController {
     );
   });
 
-  redirectToOriginalUrl = catchAsync(async (req, res) => {
-    const urlData = await UrlService.redirectToOriginalUrl(
-      req.params.shortCode as string,
-    );
+  redirectToOriginalUrl = catchAsync(async (req: Request, res: Response) => {
+    const data = {
+      userAgent: req.headers['user-agent'] || '',
+
+      referrer: req.headers['referer'] || '',
+
+      ipAddress: req.ip || '',
+
+      shortCode: req.params.shortCode,
+    };
+
+    const urlData = await UrlService.redirectToOriginalUrl(data);
 
     logger.info('Redirecting to original URL');
     res.redirect(302, urlData.originalUrl);

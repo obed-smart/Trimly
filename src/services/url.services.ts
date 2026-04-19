@@ -1,7 +1,9 @@
 import urlRepository from '../repository/url.repository.js';
-import { CreateUrlDto } from '../dtos/url/url.dto.js';
+import AnalysisServices, { AnalysisContext } from './analysis.services.js';
 import AppError from '../utils/appErros.js';
 import { generateId, RESERVED_SHORTCODES } from '../utils/utils.js';
+import { CreateUrlDto } from '../dtos/url.dto.js';
+import logger from '../utils/logger.js';
 
 class UrlService {
   async createShortUrl(createUrlData: CreateUrlDto): Promise<CreateUrlDto> {
@@ -34,14 +36,31 @@ class UrlService {
     return await urlRepository.createUrlShorten(createUrlData);
   }
 
-  async redirectToOriginalUrl(shortCode: string) {
-    const urlData = await urlRepository.findByShortCode(shortCode);
+  async redirectToOriginalUrl(data: AnalysisContext) {
+    const urlData = await urlRepository.findByShortCode(data.shortCode);
 
     if (!urlData) {
       throw new AppError('Short URL not found', 404);
     }
 
-    await urlRepository.incrementClickCount(shortCode);
+    await Promise.allSettled([
+      urlRepository.incrementClickCount(data.shortCode),
+      AnalysisServices.createAnalysis({
+        userAgent: data.userAgent,
+        referrer: data.referrer as string,
+        ipAddress: data.ipAddress as string,
+        shortCode: data.shortCode,
+        urlId: urlData._id.toString(),
+      }),
+    ]).then((result) => {
+      result.forEach((res, index) => {
+        if (res.status === 'rejected') {
+          logger.error(
+            `Failed to process ${index === 0 ? 'click count increment' : 'analysis creation'}: ${res.reason}`,
+          );
+        }
+      });
+    });
 
     return urlData;
   }

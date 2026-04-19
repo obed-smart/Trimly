@@ -3,32 +3,32 @@ import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import morgan from 'morgan';
 
-
-
 import GlobalEroorHandler from './middlewares/globalError.middleware.js';
 import AppError from './utils/appErros.js';
 import logger from './utils/logger.js';
 import { ApiResponse } from './utils/apiResponse.js';
 import urlRouter from './routers/url.routers.js';
+import analysisRouter from './routers/analysis.routers.js';
 
 const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
+app.set('trust proxy', true);
 
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
 app.get('/health/live', (req, res) => {
-  const t = Date.now();
+  const start = Date.now();
 
   res.status(200).json(
     ApiResponse.success(
       {
         status: 'alive',
         uptime: Math.round(process.uptime()),
-        responseTime: `${Date.now() - t}ms`,
+        responseTime: `${Date.now() - start}ms`,
         timestamp: new Date().toISOString(),
       },
       'Trimly is live',
@@ -36,7 +36,7 @@ app.get('/health/live', (req, res) => {
   );
 });
 
-app.get('/health/ready', async(req, res) => {
+app.get('/health/ready', async (req, res) => {
   const start = Date.now();
 
   try {
@@ -67,6 +67,7 @@ app.get('/health/ready', async(req, res) => {
 });
 
 app.use('/api/v1/urls', urlRouter);
+app.use('/api/v1/analysis', analysisRouter);
 
 app.use((req, res, next) => {
   throw new AppError(`Can't find ${req.originalUrl} on this server!`, 404);

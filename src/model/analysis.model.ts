@@ -23,6 +23,14 @@ const analysisSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    latitude: {
+      type: Number,
+      default: null,
+    },
+    longitude: {
+      type: Number,
+      default: null,
+    },
     device: {
       type: String,
       default: null,
@@ -42,7 +50,6 @@ const analysisSchema = new mongoose.Schema(
   },
   {
     versionKey: false,
-    timestamps: true,
   },
 );
 

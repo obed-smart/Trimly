@@ -11,7 +11,10 @@ type ErrorRequestHandler = (
 
 const sendErrorDev = (err: any, res: Response) => {
   res.status(err.statusCode).json({
-    ...ApiResponse.error({ status: err.status, message: err.message }),
+    ...ApiResponse.error(
+      { status: err.status, message: err.message },
+      err.statusCode,
+    ),
     stack: err.stack,
   });
 };
@@ -21,7 +24,10 @@ const sendErrorProd = (err: any | string, res: Response) => {
     return res
       .status(err.statusCode)
       .json(
-        ApiResponse.error({ message: err.message, statusCode: err.statusCode }),
+        ApiResponse.error(
+          { status: err.status, message: err.message },
+          err.statusCode,
+        ),
       );
   }
 };

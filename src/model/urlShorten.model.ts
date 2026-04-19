@@ -29,7 +29,6 @@ const urlShortenSchema = new mongoose.Schema(
   },
 );
 
-urlShortenSchema.index({ shortCode: 1 });
 urlShortenSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
 
 const UrlShorten = mongoose.model('UrlShorten', urlShortenSchema);

@@ -3,7 +3,7 @@ export class ApiResponse {
     return { success: true, message, data: data ?? null };
   }
 
-  static error(message: any | string, statusCode: number = 400) {
+  static error(message: any | string, statusCode: number) {
     return {
       success: false,
       message,
