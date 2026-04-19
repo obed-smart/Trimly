@@ -1,45 +1,85 @@
-import { nanoid } from 'nanoid';
 import urlRepository from '../repository/url.repository.js';
-import { CreateUrlDto } from '../dtos/createUrlDto.js';
+import { CreateUrlDto } from '../dtos/url/url.dto.js';
 import AppError from '../utils/appErros.js';
+import { generateId, RESERVED_SHORTCODES } from '../utils/utils.js';
 
 class UrlService {
-  async createShortUrl(createUrlDto: CreateUrlDto) {
+  async createShortUrl(createUrlData: CreateUrlDto): Promise<CreateUrlDto> {
     const existingUrl = await urlRepository.findByOriginalUrl(
-      createUrlDto.originalUrl,
+      createUrlData.originalUrl,
     );
 
     if (existingUrl) {
       return existingUrl;
     }
 
-    const shortUrl = nanoid(7);
+    if (createUrlData.shortCode) {
+      const alias = createUrlData.shortCode.toLowerCase();
 
-    createUrlDto.shortUrl = shortUrl;
-
-    if (createUrlDto.customAlias) {
-      const aliasExists = await urlRepository.findByCustomAlias(
-        createUrlDto.customAlias,
-      );
-      if (aliasExists) {
-        throw new AppError('Custom alias already in use', 400);
+      if (RESERVED_SHORTCODES.has(alias)) {
+        throw new AppError(
+          'The provided short code is reserved and cannot be used',
+          400,
+        );
       }
+
+      const alaisExists = await urlRepository.shortCodeExists(alias!);
+      if (alaisExists) {
+        throw new AppError('custom short code already exists', 400);
+      }
+    } else {
+      createUrlData.shortCode = await generateId();
     }
 
-    return await urlRepository.createUrlShorten(createUrlDto);
+    return await urlRepository.createUrlShorten(createUrlData);
   }
 
-  async getUrl(shortUrl: string) {
-    const urlData = await urlRepository.findByShortUrl(shortUrl);
+  async redirectToOriginalUrl(shortCode: string) {
+    const urlData = await urlRepository.findByShortCode(shortCode);
 
     if (!urlData) {
       throw new AppError('Short URL not found', 404);
     }
 
+    await urlRepository.incrementClickCount(shortCode);
+
     return urlData;
   }
 
-  async deleteShortUrl(shortUrl: string) {}
+  async addCustomAlias(
+    shortCode: string,
+    customAlias: string,
+  ): Promise<CreateUrlDto | null> {
+    const alias = customAlias.toLowerCase();
+
+    if (RESERVED_SHORTCODES.has(alias)) {
+      throw new AppError(
+        'The provided custom alias is reserved and cannot be used',
+        400,
+      );
+    }
+
+    const aliasExists = await urlRepository.shortCodeExists(alias);
+    if (aliasExists) {
+      throw new AppError('Custom alias already exists', 400);
+    }
+
+    const urlData = await urlRepository.shortCodeExists(shortCode);
+    if (!urlData) {
+      throw new AppError('Short URL not found', 404);
+    }
+
+    return await urlRepository.findAndUpdateShortCode(shortCode, alias);
+  }
+
+  async deleteShortUrl(shortCode: string): Promise<void> {
+    const urlData = await urlRepository.shortCodeExists(shortCode);
+    if (!urlData) {
+      throw new AppError('Short URL not found', 404);
+    }
+
+    await urlRepository.findAndDeleteByShortCode(shortCode);
+  }
 }
 
 export default new UrlService();

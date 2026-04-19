@@ -1,8 +1,11 @@
-import app from "./server.ts";
-import logger from "./utils/logger.ts";
+
+
+import connectDb from './config/db.js';
+import app from './server.js';
+import logger from './utils/logger.js';
 
 const startServer = async () => {
-  //   await connectDB();
+  await connectDb();
 
   const PORT = process.env.PORT || 3000;
 

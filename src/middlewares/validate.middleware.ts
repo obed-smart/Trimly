@@ -1,23 +1,24 @@
-import { Request, Response, NextFunction, RequestHandler } from 'express';
-import { ObjectSchema } from 'joi';
-
+import { Request, Response, NextFunction } from 'express';
+import { ZodType } from 'zod';
 import AppError from '../utils/appErros.js';
 
-type RequestProperty = 'body' | 'query' | 'params';
-const validate =
-  (schema: ObjectSchema, property: RequestProperty = 'body'): RequestHandler =>
-  (req: Request, res: Response, next: NextFunction) => {
-    const { error, value } = schema.validate(req[property], {
-      abortEarly: false,
-    });
 
-    if (error) {
-      const message = error.details.map((detail) => detail.message).join(', ');
-      return next(new AppError(message, 400));
+type RequestProperty = 'body' | 'query' | 'params';
+
+const validate =
+  (schema: ZodType, property: RequestProperty = 'body') =>
+  (req: Request, res: Response, next: NextFunction) => {
+    const result = schema.safeParse(req[property]);
+
+    if (!result.success) {
+      const message = result.error.issues.map((i) => i.message).join(', ');
+
+      throw new AppError(message, 400);
     }
+    const value = result.data;
 
     if (property === 'body') {
-      (req as Request & { body: unknown }).body = value;
+      req.body = value;
     } else {
       Object.assign(req[property], value);
     }

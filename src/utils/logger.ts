@@ -1,14 +1,12 @@
-import pino from "pino";
+import pino from 'pino';
 
-
-const isProduction = process.env.NODE_ENV === "production";
-
-
+const isProduction = process.env.NODE_ENV === 'production';
 
 const logger = pino({
-  level: process.env.LOG_LEVEL || (isProduction ? "info" : "debug"),
+  level: isProduction ? 'info' : 'debug',
+
   base: {
-    service: "Trimly_Api",
+    service: 'Trimly_Api',
     env: process.env.NODE_ENV,
   },
   timestamp: pino.stdTimeFunctions.isoTime,
@@ -16,14 +14,23 @@ const logger = pino({
     ? {}
     : {
         transport: {
-          target: "pino-pretty",
+          target: 'pino-pretty',
           options: {
             colorize: true,
             singleLine: false,
-            translateTime: "HH:MM:ss Z",
+            translateTime: 'HH:MM:ss Z',
           },
         },
       }),
+  serializers: {
+    err: isProduction
+      ? (err) => ({
+          type: err.type,
+          message: err.message,
+          statusCode: err.statusCode,
+        })
+      : pino.stdSerializers.err,
+  },
 });
 
 export default logger;

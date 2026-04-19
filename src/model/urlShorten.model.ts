@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { url } from 'node:inspector';
 
 const urlShortenSchema = new mongoose.Schema(
   {
@@ -6,23 +7,30 @@ const urlShortenSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    shortUrl: {
+    shortCode: {
       type: String,
       required: true,
       unique: true,
+      lowercase: true,
+      trim: true,
     },
-    customAlias: {
-      type: String,
-      unique: true,
-      sparse: true,
+    clickCount: {
+      type: Number,
+      default: 0,
+    },
+    expireAt: {
+      type: Date,
+      default: null,
     },
   },
   {
+    versionKey: false,
     timestamps: true,
   },
 );
 
-urlShortenSchema.index({ originalUrl: 1, shortUrl: 1 });
+urlShortenSchema.index({ shortCode: 1 });
+urlShortenSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
 
 const UrlShorten = mongoose.model('UrlShorten', urlShortenSchema);
 
