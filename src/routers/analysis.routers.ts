@@ -1,19 +1,39 @@
 import { Router } from 'express';
 import AnalysisController from '../controllers/analysis.controllers.js';
+import validate from '../middlewares/validate.middleware.js';
+import { updatedShortCodeSchema } from '../dtos/url.dto.js';
 
 const router = Router();
 
-router.get('/:urlId', AnalysisController.getAnalysis);
 router.get(
-  '/:urlId/top-countries',
+  '/:shortCode/top-countries',
+  validate(updatedShortCodeSchema, 'params'),
   AnalysisController.getAnalysisByTopCountries,
 );
-router.get('/:urlId/top-devices', AnalysisController.getAnalysisByTopDevices);
-router.get('/:urlId/top-browsers', AnalysisController.getAnalysisByTopBrowsers);
+
 router.get(
-  '/:urlId/top-referrers',
+  '/:shortCode/top-devices',
+  validate(updatedShortCodeSchema, 'params'), 
+  AnalysisController.getAnalysisByTopDevices,
+);
+
+router.get(
+  '/:shortCode/top-browsers',
+  validate(updatedShortCodeSchema, 'params'),
+  AnalysisController.getAnalysisByTopBrowsers,
+);
+
+router.get(
+  '/:shortCode/top-referrers',
+  validate(updatedShortCodeSchema, 'params'),
   AnalysisController.getAnalysisByTopReferrers,
 );
-router.get('/:urlId/top-os', AnalysisController.getAnalysisByTopOS);
 
+router.get('/:shortCode/top-os', AnalysisController.getAnalysisByTopOS);
+
+router.get(
+  '/:shortCode',
+  validate(updatedShortCodeSchema, 'params'),
+  AnalysisController.getAnalysis,
+);
 export default router;

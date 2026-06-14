@@ -8,7 +8,13 @@ import { CreateUrlDto } from '../dtos/url.dto.js';
 class UrlController {
   createShortUrl = catchAsync(async (req, res): Promise<void> => {
     const url: CreateUrlDto = req.body;
-    const result = await UrlService.createShortUrl(url);
+    const reqBody = {
+      userId: req.user?._id ?? null,
+      anonymousId: req.anonymousId ?? null,
+    };
+
+  logger.debug({ url, reqBody : 'Creating short URL with the provided data' });
+    const result = await UrlService.createShortUrl(url, reqBody);
 
     logger.info('shortCode created successfully');
     res.status(201).json(

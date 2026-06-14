@@ -4,9 +4,19 @@ import AppError from '../utils/appErros.js';
 import { generateId, RESERVED_SHORTCODES } from '../utils/utils.js';
 import { CreateUrlDto } from '../dtos/url.dto.js';
 import logger from '../utils/logger.js';
+import redis from '../config/redis.config.js';
+import mongoose from 'mongoose';
+
+export interface IreqBody {
+  userId: mongoose.Types.ObjectId | null;
+  anonymousId: string | null;
+}
 
 class UrlService {
-  async createShortUrl(createUrlData: CreateUrlDto): Promise<CreateUrlDto> {
+  async createShortUrl(
+    createUrlData: CreateUrlDto,
+    reqBody: IreqBody,
+  ): Promise<CreateUrlDto> {
     const existingUrl = await urlRepository.findByOriginalUrl(
       createUrlData.originalUrl,
     );
@@ -33,33 +43,64 @@ class UrlService {
       createUrlData.shortCode = await generateId();
     }
 
-    return await urlRepository.createUrlShorten(createUrlData);
+    const url = await urlRepository.createUrlShorten({
+      originalUrl: createUrlData.originalUrl,
+      shortCode: createUrlData.shortCode,
+      createdByType: reqBody.userId ? 'user' : 'anonymous',
+      anonymousId: reqBody.userId ? null : reqBody.anonymousId,
+      userId: reqBody.userId ? reqBody.userId : null,
+    });
+
+    if (!reqBody.userId) {
+      const cacheKey = `anonymous:${reqBody.anonymousId}:urls`;
+      await redis.lpush(cacheKey, createUrlData.shortCode);
+      await redis.expire(cacheKey, 30 * 24 * 60 * 60);
+    }
+
+    return url;
   }
 
   async redirectToOriginalUrl(data: AnalysisContext) {
-    const urlData = await urlRepository.findByShortCode(data.shortCode);
+    logger.info(
+      { shortCode: data.shortCode },
+      'Redirect request received for short code:',
+    );
 
-    if (!urlData) {
-      throw new AppError('Short URL not found', 404);
+    const cacheKey = `url:${data.shortCode}`;
+
+    let urlData;
+
+    const cachedData = await redis.get(cacheKey);
+
+    if (cachedData) {
+      urlData = JSON.parse(cachedData);
+      logger.debug({ cacheHit: true }, 'Cache hit for short code:');
+    } else {
+      urlData = await urlRepository.findByShortCode(data.shortCode);
+      if (!urlData) {
+        throw new AppError('Short URL not found', 404);
+      }
+
+      await redis.set(
+        cacheKey,
+        JSON.stringify({
+          _id: urlData._id,
+          originalUrl: urlData.originalUrl,
+          shortCode: urlData.shortCode,
+        }),
+        'EX',
+        86400,
+      );
+
+      logger.debug({ cacheHit: false }, 'Cache miss for short code:');
     }
 
-    await Promise.allSettled([
-      urlRepository.incrementClickCount(data.shortCode),
-      AnalysisServices.createAnalysis({
-        userAgent: data.userAgent,
-        referrer: data.referrer as string,
-        ipAddress: data.ipAddress as string,
-        shortCode: data.shortCode,
-        urlId: urlData._id.toString(),
-      }),
-    ]).then((result) => {
-      result.forEach((res, index) => {
-        if (res.status === 'rejected') {
-          logger.error(
-            `Failed to process ${index === 0 ? 'click count increment' : 'analysis creation'}: ${res.reason}`,
-          );
-        }
-      });
+    await AnalysisServices.createAnalysis({
+      userAgent: data.userAgent,
+      referrer: data.referrer as string,
+      ipAddress: data.ipAddress as string,
+      shortCode: data.shortCode,
+      urlId: urlData._id.toString() as string,
     });
 
     return urlData;

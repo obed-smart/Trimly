@@ -2,26 +2,29 @@ import { string } from 'zod';
 import AnalysisServices from '../services/analysis.services.js';
 import catchAsync from '../utils/catchAsync.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { UpdateShortCodeDto } from '../dtos/url.dto.js';
 
 class AnalysisController {
   getAnalysis = catchAsync(async (req, res) => {
-    const { urlId } = req.params;
-    const analysisData = await AnalysisServices.getAnalysisByUrlId(
-      urlId as string,
-    );
+    const { shortCode } = req.params;
+    const analysisData =
+      await AnalysisServices.getAnalysisByShortCode(shortCode);
 
-    res.status(200).json({
-      status: 'success',
-      results: analysisData.length,
-      data: analysisData,
-    });
+    res.status(200).json(
+      ApiResponse.success(
+        {
+          results: analysisData.length,
+          data: analysisData,
+        },
+        'Analysis retrieved successfully',
+      ),
+    );
   });
 
   getAnalysisByTopCountries = catchAsync(async (req, res) => {
-    const { urlId } = req.params;
-    const analysisData = await AnalysisServices.getAnalysisByTopCountries(
-      urlId as string,
-    );
+    const { shortCode } = req.params;
+    const analysisData =
+      await AnalysisServices.getAnalysisByTopCountries(shortCode as UpdateShortCodeDto);
 
     res.status(200).json(
       ApiResponse.success(
@@ -35,10 +38,9 @@ class AnalysisController {
   });
 
   getAnalysisByTopDevices = catchAsync(async (req, res) => {
-    const { urlId } = req.params;
-    const analysisData = await AnalysisServices.getAnalysisByTopDevices(
-      urlId as string,
-    );
+    const { shortCode } = req.params;
+    const analysisData =
+      await AnalysisServices.getAnalysisByTopDevices(shortCode);
 
     res.status(200).json(
       ApiResponse.success(
@@ -52,9 +54,9 @@ class AnalysisController {
   });
 
   getAnalysisByTopBrowsers = catchAsync(async (req, res) => {
-    const { urlId } = req.params;
+    const { shortCode } = req.params;
     const analysisData = await AnalysisServices.getAnalysisByTopBrowsers(
-      urlId as string,
+      shortCode
     );
 
     res.status(200).json(

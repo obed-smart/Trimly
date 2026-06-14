@@ -1,21 +1,22 @@
 import mongoose from 'mongoose';
 import { AnalysisInput } from '../dtos/analysis.dto.js';
 import Analysis from '../model/analysis.model.js';
+import { UpdateShortCodeDto } from '../dtos/url.dto.js';
 
 class AnalysisRepository {
-  async createAnalysis(AnalysisData: AnalysisInput) {
-    return await Analysis.create(AnalysisData);
+  async createAnalysis(AnalysisData: AnalysisInput[]) {
+    return await Analysis.insertMany(AnalysisData, { ordered: false });
   }
 
-  async findAllByUrlId(urlId: string) {
-    return Analysis.find({ urlId }).exec();
+  async findAllByShortCode(shortCode: UpdateShortCodeDto) {
+    return Analysis.find({ shortCode }).exec();
   }
 
-  async getTopCountries(urlId: string) {
+  async getTopCountries(shortCode: UpdateShortCodeDto) {
     const result = await Analysis.aggregate([
       {
         $match: {
-          urlId: new mongoose.Types.ObjectId(urlId),
+          shortCode: shortCode,
         },
       },
 
@@ -40,11 +41,11 @@ class AnalysisRepository {
     return result;
   }
 
-  async getTopDevices(urlId: string) {
+  async getTopDevices(shortCode: UpdateShortCodeDto) {
     return Analysis.aggregate([
       {
         $match: {
-          urlId: new mongoose.Types.ObjectId(urlId),
+          shortCode: shortCode,
         },
       },
 
@@ -68,11 +69,11 @@ class AnalysisRepository {
     ]);
   }
 
-  async getTopReferrers(urlId: string) {
+  async getTopReferrers(shortCode: UpdateShortCodeDto) {
     return Analysis.aggregate([
       {
         $match: {
-          urlId: new mongoose.Types.ObjectId(urlId),
+          shortCode: shortCode,
         },
       },
 
@@ -96,11 +97,11 @@ class AnalysisRepository {
     ]);
   }
 
-  async getTopBrowsers(urlId: string) {
+  async getTopBrowsers(shortCode: UpdateShortCodeDto) {
     return Analysis.aggregate([
       {
         $match: {
-          urlId: new mongoose.Types.ObjectId(urlId),
+          shortCode: shortCode,
         },
       },
 
@@ -124,11 +125,11 @@ class AnalysisRepository {
     ]);
   }
 
-  async getTopOperatingSystems(urlId: string) {
+  async getTopOperatingSystems(shortCode: UpdateShortCodeDto) {
     return Analysis.aggregate([
       {
         $match: {
-          urlId: new mongoose.Types.ObjectId(urlId),
+          shortCode: shortCode,
         },
       },
 

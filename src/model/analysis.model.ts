@@ -1,48 +1,72 @@
-import mongoose from 'mongoose';
+import mongoose, { Document, Model } from 'mongoose';
 
-const analysisSchema = new mongoose.Schema(
+export interface IAnalysis extends Document {
+  shortCode: string;
+  ipAddress: string | null;
+  referrer: string | null;
+  country: string | null;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  device: string | null;
+  browser: string | null;
+  os: string | null;
+  clickedAt: Date;
+}
+
+const analysisSchema = new mongoose.Schema<IAnalysis>(
   {
-    urlId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'UrlShorten',
+    shortCode: {
+      type: String,
       required: true,
+      index: true,
     },
+
     ipAddress: {
       type: String,
       default: null,
     },
+
     referrer: {
       type: String,
       default: null,
     },
+
     country: {
       type: String,
       default: null,
     },
+
     city: {
       type: String,
       default: null,
     },
+
     latitude: {
       type: Number,
       default: null,
     },
+
     longitude: {
       type: Number,
       default: null,
     },
+
     device: {
       type: String,
       default: null,
     },
+
     browser: {
       type: String,
       default: null,
     },
+
     os: {
       type: String,
       default: null,
     },
+
     clickedAt: {
       type: Date,
       default: Date.now,
@@ -50,9 +74,10 @@ const analysisSchema = new mongoose.Schema(
   },
   {
     versionKey: false,
+    timestamps: false,
   },
 );
 
-const Analysis = mongoose.model('Analysis', analysisSchema);
+const Analysis: Model<IAnalysis> = mongoose.model('Analysis', analysisSchema);
 
 export default Analysis;

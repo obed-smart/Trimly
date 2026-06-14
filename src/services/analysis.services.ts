@@ -9,6 +9,10 @@ countries.registerLocale(en);
 
 import logger from '../utils/logger.js';
 import { AnalysisInput } from '../dtos/analysis.dto.js';
+import redis from '../config/redis.config.js';
+import { pipe } from 'zod';
+import { UpdateShortCodeDto } from '../dtos/url.dto.js';
+import { analyticsQueue } from '../queue/  analytics.queue.js';
 
 const detector = new (DeviceDetector as any)({
   clientIndexes: true,
@@ -38,45 +42,175 @@ class AnalysisService {
 
     const countryName = countries.getName(geo?.country as string, 'en');
 
+    const browser = result.client?.name || 'unknown';
+    const device = result.device?.type || 'desktop';
+    const os = result.os?.name || 'unknown';
+    const referrer = context.referrer || 'direct';
+
     const analysisData = {
       urlId: context.urlId || '',
-      referrer: context.referrer || null,
+      shortCode: context.shortCode,
+      referrer: referrer,
       ipAddress: context.ipAddress || null,
       country: countryName || null,
       city: geo?.city || null,
-      device: result.device?.type || 'desktop',
-      browser: result.client?.name || 'unknown',
-      os: result.os?.name || 'unknown',
+      device: device,
+      browser: browser,
+      os: os,
       latitude: geo?.ll[0],
       longitude: geo?.ll[1],
     };
 
-    await AnalysisRepository.createAnalysis(analysisData);
+    const pipeline = redis.pipeline();
+
+    pipeline.rpush(`analysis:queues`, JSON.stringify(analysisData));
+
+    pipeline.incr(`url:clicks:${context.shortCode}`);
+
+    pipeline.hincrby(
+      `analysis:${context.shortCode}:countries`,
+      countryName || 'unknown',
+      1,
+    );
+
+    pipeline.hincrby(`analysis:${context.shortCode}:device`, device, 1);
+    pipeline.hincrby(`analysis:${context.shortCode}:browser`, browser, 1);
+    pipeline.hincrby(`analysis:${context.shortCode}:os`, os, 1);
+    pipeline.hincrby(`analysis:${context.shortCode}:referrer`, referrer, 1);
+
+    await pipeline.exec();
+
+    await analyticsQueue.add(
+      'flush-analytics',
+
+      {},
+
+      {
+        delay: 30000,
+
+        jobId: 'analytics-flush',
+      },
+    );
   }
 
-  async getAnalysisByUrlId(urlId: string) {
-    return AnalysisRepository.findAllByUrlId(urlId);
+  async getAnalysisByShortCode(shortCode: UpdateShortCodeDto) {
+    const cacheKey = `analysis:queue`;
+
+    const cachedData = await redis.lrange(cacheKey, 0, -1);
+
+    if (cachedData.length > 0) {
+      logger.info(
+        { cacheKey, cachedDataLength: cachedData.length },
+        'Fetching analysis data from cache:',
+      );
+
+      return cachedData.map((item: string) => JSON.parse(item));
+    }
+
+    const data = await AnalysisRepository.findAllByShortCode(shortCode);
+
+    await redis.rpush(cacheKey, ...data.map((item) => JSON.stringify(item)));
+
+    logger.info(
+      { cacheKey, dataLength: data.length },
+      'Fetching analysis data from database:',
+    );
+
+    return data;
   }
 
-  async getAnalysisByTopCountries(urlId: string) {
-    return AnalysisRepository.getTopCountries(urlId);
+  async getAnalysisByTopCountries(shortCode: UpdateShortCodeDto) {
+    const cacheKey = `analysis:${shortCode}:countries`;
+
+    const cachedData = await redis.hgetall(cacheKey);
+
+    if (Object.keys(cachedData).length > 0) {
+      logger.info(
+        { cacheKey, cachedData },
+        'cache hit for top countries analysis:',
+      );
+
+      return cachedData;
+    }
+
+    const data = await AnalysisRepository.getTopCountries(shortCode);
+    logger.info({ data }, 'Fetched top countries from database:');
+
+    return data;
   }
 
-  async getAnalysisByTopReferrers(urlId: string) {
-    return AnalysisRepository.getTopReferrers(urlId);
+  async getAnalysisByTopReferrers(shortCode: UpdateShortCodeDto) {
+    const cacheKey = `analysis:${shortCode}:referrers`;
+
+    const cachedData = await redis.hgetall(cacheKey);
+
+    if (Object.keys(cachedData).length > 0) {
+      logger.info(
+        { cacheKey, cachedData },
+        'cache hit for top referrers analysis:',
+      );
+
+      return cachedData;
+    }
+
+    const data = await AnalysisRepository.getTopReferrers(shortCode);
+    logger.info({ data }, 'Fetched top referrers from database:');
+
+    return data;
   }
 
-  async getAnalysisByTopDevices(urlId: string) {
-    return AnalysisRepository.getTopDevices(urlId);
+  async getAnalysisByTopDevices(shortCode: UpdateShortCodeDto) {
+    const cacheKey = `analysis:${shortCode}:devices`;
+
+    const cachedData = await redis.hgetall(cacheKey);
+
+    if (Object.keys(cachedData).length > 0) {
+      logger.info({ cacheKey, cachedData }, 'cache hit for top devices:');
+
+      return cachedData;
+    }
+
+    const data = await AnalysisRepository.getTopDevices(shortCode);
+    logger.info({ data }, 'Fetching top devices from database:');
+
+    return data;
   }
 
-  async getAnalysisByTopBrowsers(urlId: string) {
-    console.log(Date.now());
-    return AnalysisRepository.getTopBrowsers(urlId);
+  async getAnalysisByTopBrowsers(shortCode: UpdateShortCodeDto) {
+    const cacheKey = `analysis:${shortCode}:browsers`;
+
+    const cachedData = await redis.hgetall(cacheKey);
+
+    if (Object.keys(cachedData).length > 0) {
+      logger.info({ cacheKey, cachedData }, 'cache hit for top browsers:');
+
+      return cachedData;
+    }
+
+    const data = await AnalysisRepository.getTopBrowsers(shortCode);
+    logger.info({ data }, 'Fetching top browsers from database:');
+
+    return data;
   }
 
-  async getAnalysisByTopOS(urlId: string) {
-    return AnalysisRepository.getTopOperatingSystems(urlId);
+  async getAnalysisByTopOS(shortCode: UpdateShortCodeDto) {
+    const cacheKey = `analysis:${shortCode}:os`;
+
+    const cachedData = await redis.hgetall(cacheKey);
+
+    if (Object.keys(cachedData).length > 0) {
+      logger.info(
+        { cacheKey, cachedData },
+        'cache hit for top operating systems:',
+      );
+
+      return cachedData;
+    }
+
+    const data = await AnalysisRepository.getTopOperatingSystems(shortCode);
+    logger.info({ data }, 'Fetching top operating systems from database:');
+
+    return data;
   }
 }
 

@@ -1,7 +1,11 @@
+
+
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import morgan from 'morgan';
+import helmet from 'helmet';
+import passport from 'passport';
 
 import GlobalEroorHandler from './middlewares/globalError.middleware.js';
 import AppError from './utils/appErros.js';
@@ -9,12 +13,22 @@ import logger from './utils/logger.js';
 import { ApiResponse } from './utils/apiResponse.js';
 import urlRouter from './routers/url.routers.js';
 import analysisRouter from './routers/analysis.routers.js';
+import userRouter from './routers/auth.router.js';
+import { assignAnonymousId } from './middlewares/assignAnonymousId.js';
+
+import './config/passport-config.js';
 
 const app = express();
 
+app.use(helmet());
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.set('trust proxy', true);
+
+app.use(assignAnonymousId);
+app.use(passport.initialize());
 
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
@@ -68,6 +82,7 @@ app.get('/health/ready', async (req, res) => {
 
 app.use('/api/v1/urls', urlRouter);
 app.use('/api/v1/analysis', analysisRouter);
+app.use('/api/v1/auth', userRouter);
 
 app.use((req, res, next) => {
   throw new AppError(`Can't find ${req.originalUrl} on this server!`, 404);

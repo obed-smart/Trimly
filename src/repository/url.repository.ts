@@ -15,8 +15,8 @@ class UrlShortenRepository {
     return await UrlShorten.findOne({ originalUrl });
   }
 
-  async incrementClickCount(shortCode: string) {
-    await UrlShorten.updateOne({ shortCode }, { $inc: { clickCount: 1 } });
+  async incrementClickCount(shortCode: string, clicks: number) {
+    await UrlShorten.updateOne({ shortCode }, { $inc: { clickCount: clicks } });
   }
 
   async findAndUpdateShortCode(shortCode: string, customAlias: string) {

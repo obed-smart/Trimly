@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { RESERVED_SHORTCODES } from '../utils/utils.js';
+import mongoose from 'mongoose';
 
 
 export const createUrlSchema = z.object({
@@ -17,7 +18,28 @@ export const createUrlSchema = z.object({
     .max(20, 'shortCode must not exceed 20 characters')
     .refine((code) => !RESERVED_SHORTCODES.has(code.toLowerCase()), {
       message: 'shortCode is reserved and cannot be used',
-    })
+    }).optional(),
+
+  expireAt: z.date().nullable().optional(),
+
+  createdByType: z
+    .enum(['anonymous', 'user'])
+    .optional(),
+
+  anonymousId: z
+    .string()
+    .nullable()
+    .optional(),
+
+  userId: z
+    .instanceof(mongoose.Types.ObjectId)
+    .nullable()
+    .optional(),
+
+  clickCount: z
+    .number()
+    .int()
+    .nonnegative()
     .optional(),
 });
 
