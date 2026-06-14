@@ -20,7 +20,6 @@ class UrlController {
     res.status(201).json(
       ApiResponse.success({
         shortUrl: `${req.protocol}://${req.get('host')}${req.baseUrl}/${result.shortCode}`,
-        message: 'link shorten successfully',
       }),
     );
   });

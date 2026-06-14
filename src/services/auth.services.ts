@@ -19,8 +19,8 @@ export interface IAuthService extends ITokenResponse {
 
 class AuthService {
   private generateToken(user: IUser) {
-    const accessToken = hashToken(generateAccessToken(user));
-    const refreshToken = hashToken(generateRefreshToken());
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken();
 
     return {
       accessToken,
@@ -46,7 +46,7 @@ class AuthService {
 
     const { accessToken, refreshToken } = this.generateToken(user);
 
-    user.refreshToken = refreshToken;
+    user.refreshToken = hashToken(refreshToken);
     await authRepository.save(user, false);
 
     return {
@@ -59,12 +59,33 @@ class AuthService {
   async login(user: IUser): Promise<ITokenResponse> {
     const { accessToken, refreshToken } = this.generateToken(user);
 
-    user.refreshToken = refreshToken;
+    user.refreshToken = hashToken(refreshToken);
     await authRepository.save(user, false);
 
     return {
       accessToken,
       refreshToken,
+    };
+  }
+
+  async refreshTokens(refreshToken: string): Promise<ITokenResponse> {
+    const user = await authRepository.findByRefreshToken(
+      hashToken(refreshToken),
+    );
+
+    if (!user) {
+      throw new AppError('Invalid refresh token', 401);
+    }
+
+    const { accessToken, refreshToken: newRefreshToken } =
+      this.generateToken(user);
+
+    user.refreshToken = hashToken(newRefreshToken);
+    await authRepository.save(user, false);
+
+    return {
+      accessToken,
+      refreshToken: newRefreshToken,
     };
   }
 
@@ -77,7 +98,6 @@ class AuthService {
     user.refreshToken = '';
     await authRepository.save(user, false);
   }
-  
 }
 
 export default new AuthService();

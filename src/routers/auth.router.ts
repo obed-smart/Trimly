@@ -3,7 +3,7 @@ import userControllers from '../controllers/auth.controllers.js';
 import validate from '../middlewares/validate.middleware.js';
 import passport from 'passport';
 import { LoginSchema } from '../dtos/auth.dto.js';
-import authenticate from '../middlewares/authenticate.middleware.js';
+import { authenticate } from '../middlewares/authenticate.middleware.js';
 
 const router = express.Router();
 
@@ -14,6 +14,8 @@ router.post(
   passport.authenticate('local', { session: false }),
   userControllers.login,
 );
+
+router.post('/refresh-token', userControllers.refreshToken);
 
 router.post('/logout', authenticate, userControllers.logOut);
 

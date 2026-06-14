@@ -1,13 +1,12 @@
 export class ApiResponse {
-  static success<T>(data?: T, message: string = 'success') {
-    return { success: true, message, data: data ?? null };
+  static success<T>(data?: T) {
+    return { success: true, data: data ?? null };
   }
 
-  static error(message: any | string, statusCode: number) {
+  static error(message: any | string) {
     return {
       success: false,
       message,
-      statusCode,
     };
   }
 }

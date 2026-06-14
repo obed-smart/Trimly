@@ -1,5 +1,3 @@
-
-
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
@@ -14,9 +12,10 @@ import { ApiResponse } from './utils/apiResponse.js';
 import urlRouter from './routers/url.routers.js';
 import analysisRouter from './routers/analysis.routers.js';
 import userRouter from './routers/auth.router.js';
-import { assignAnonymousId } from './middlewares/assignAnonymousId.js';
+
 
 import './config/passport-config.js';
+
 
 const app = express();
 
@@ -27,7 +26,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.set('trust proxy', true);
 
-app.use(assignAnonymousId);
 app.use(passport.initialize());
 
 if (process.env.NODE_ENV === 'development') {
@@ -45,7 +43,6 @@ app.get('/health/live', (req, res) => {
         responseTime: `${Date.now() - start}ms`,
         timestamp: new Date().toISOString(),
       },
-      'Trimly is live',
     ),
   );
 });
@@ -70,7 +67,6 @@ app.get('/health/ready', async (req, res) => {
           responseTime: `${Date.now() - start}ms`,
           timestamp: new Date().toISOString(),
         },
-        'Trimly is ready',
       ),
     );
   } catch (error) {

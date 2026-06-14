@@ -12,7 +12,7 @@ import { AnalysisInput } from '../dtos/analysis.dto.js';
 import redis from '../config/redis.config.js';
 import { pipe } from 'zod';
 import { UpdateShortCodeDto } from '../dtos/url.dto.js';
-import { analyticsQueue } from '../queue/  analytics.queue.js';
+import { analyticsQueue } from '../queue/  queue.js';
 
 const detector = new (DeviceDetector as any)({
   clientIndexes: true,

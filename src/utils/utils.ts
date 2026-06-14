@@ -9,7 +9,6 @@ import redis from '../config/redis.config.js';
 import analysisRepository from '../repository/analysis.repository.js';
 import { IUser } from '../model/user.model.js';
 
-
 const MAX_RETRIES = 5;
 
 const nanoid = customAlphabet('abcdefghijkmnopqrstuvwxyz23456789', 8);
@@ -57,10 +56,13 @@ export const RESERVED_SHORTCODES = new Set([
 ]);
 
 export const generateAccessToken = (user: IUser) => {
-  const accessToken = jwt.sign({ sub: user.id, email: user.email }, process.env.JWT_ACCESS_SECRET!, {
-    expiresIn: '15m',
-  });
-  
+  const accessToken = jwt.sign(
+    { sub: user.id, email: user.email },
+    process.env.JWT_ACCESS_SECRET!,
+    {
+      expiresIn: '15m',
+    },
+  );
   return accessToken;
 };
 

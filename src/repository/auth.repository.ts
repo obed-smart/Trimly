@@ -26,6 +26,10 @@ class AuthRepository {
   async save(user: IUser, validate = true) {
     return user.save({ validateBeforeSave: validate });
   }
+
+  async findByRefreshToken(refreshToken: string) {
+    return await User.findOne({ refreshToken });
+  }
 }
 
 export default new AuthRepository();

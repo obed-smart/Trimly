@@ -1,6 +1,6 @@
+import { UpdateQuery } from 'mongoose';
 import { CreateUrlDto } from '../dtos/url.dto.js';
-import UrlShorten from '../model/urlShorten.model.js';
-
+import UrlShorten, { IUrlShorten } from '../model/urlShorten.model.js';
 
 class UrlShortenRepository {
   async createUrlShorten(data: CreateUrlDto) {
@@ -35,6 +35,17 @@ class UrlShortenRepository {
 
   async shortCodeExists(shortCode: string) {
     return await UrlShorten.exists({ shortCode });
+  }
+
+  async findAndUpdateAnonymousId(
+    anonymousId: string,
+    updateFields: UpdateQuery<IUrlShorten>,
+  ): Promise<void> {
+    await UrlShorten.updateMany(
+      { anonymousId },
+      { $set: updateFields },
+      { runValidators: true },
+    );
   }
 }
 

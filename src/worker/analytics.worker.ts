@@ -1,8 +1,6 @@
 import { Worker } from 'bullmq';
 
 import { syncToDb } from '../services/flushAnalytics.js';
-import redis from '../config/redis.config.js';
-import { worker } from 'node:cluster';
 import logger from '../utils/logger.js';
 import bullmqConnection from '../config/bullmq.connection.js';
 
