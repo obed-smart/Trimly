@@ -6,6 +6,7 @@ import { ApiResponse } from '../utils/apiResponse.js';
 import catchAsync from '../utils/catchAsync.js';
 import { IUser } from '../model/user.model.js';
 import { urlMigrationQueue } from '../queue/  queue.js';
+import logger from '../utils/logger.js';
 
 class UserController {
   private setCookies(res: Response, accessToken: string, refreshToken: string) {
@@ -72,8 +73,6 @@ class UserController {
 
     const { accessToken, refreshToken } = await userServices.login(user);
 
-
-
     this.setCookies(res, accessToken, refreshToken);
 
     this.urlGuestMigration(req, res, user.id);
@@ -101,7 +100,7 @@ class UserController {
     const userId = req.user?.id;
 
     if (!userId) {
-      return res.status(401).json(ApiResponse.error('Unauthorized', 401));
+      return res.status(401).json(ApiResponse.error('Unauthorized'));
     }
 
     await userServices.logOut(String(userId));
@@ -116,6 +115,28 @@ class UserController {
     res.clearCookie('refreshToken', cookieOptions);
 
     res.status(200).json(ApiResponse.success(null));
+  });
+
+  forgotPassword = catchAsync(async (req: Request, res: Response) => {
+    const { email } = req.body;
+
+    await userServices.requestpasswordReset(email);
+
+    res
+      .status(200)
+      .json(
+        ApiResponse.success(
+          'If the email exists, a one time code has been sent.',
+        ),
+      );
+  });
+
+  resetPassword = catchAsync(async (req: Request, res: Response) => {
+    const { email, otp, newPassword: password } = req.body;
+
+    await userServices.verifyOtpAndReset(email, otp, password);
+
+    res.status(200).json(ApiResponse.success('Password reset successful'));
   });
 }
 

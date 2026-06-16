@@ -11,7 +11,7 @@ export async function startUrlMigrationWorker() {
       const { anonymousId, userId, createdByType } = job.data;
 
       logger.info(
-        `[Queue worker] starting migration for anonymouId: ${anonymousId}`,
+        `[Url Migration Queue worker] starting migration for anonymouId: ${anonymousId}`,
       );
 
       await urlRepository.findAndUpdateAnonymousId(anonymousId, {
@@ -21,7 +21,7 @@ export async function startUrlMigrationWorker() {
       });
 
       logger.info(
-        `[Queue Worker] Successfully finished migration for user: ${userId}`,
+        `[Url Migration Queue Worker] Successfully finished migration for user: ${userId}`,
       );
     },
     {

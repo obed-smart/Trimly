@@ -76,6 +76,8 @@ app.get('/health/ready', async (req, res) => {
   }
 });
 
+
+
 app.use('/api/v1/urls', urlRouter);
 app.use('/api/v1/analysis', analysisRouter);
 app.use('/api/v1/auth', userRouter);

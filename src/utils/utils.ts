@@ -71,5 +71,12 @@ export const generateRefreshToken = () => {
 };
 
 export const hashToken = (token: string) => {
+  if (!token) {
+    throw new AppError(
+      '[hashToken Error] Cannot hash an undefined or empty token value.',
+      400,
+    );
+  }
+
   return crypto.createHash('sha256').update(token).digest('hex');
 };

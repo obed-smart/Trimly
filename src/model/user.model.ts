@@ -1,5 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcrypt';
+import { hashToken } from '../utils/utils.js';
 
 export interface IUser extends Document {
   id: mongoose.Types.ObjectId;
@@ -9,7 +10,11 @@ export interface IUser extends Document {
   googleId?: string;
   avatarUrl?: string;
   refreshToken: string;
+  passwordResetOtp: string | null;
+  passwordResetOtpExpiry: Date | null;
+  passwordResetAttempts: number;
   comparePassword(candidatePassword: string): Promise<boolean>;
+  createPasswordResetOtp(): Promise<string>;
 }
 
 const UserSchema: Schema<IUser> = new Schema<IUser>(
@@ -29,7 +34,6 @@ const UserSchema: Schema<IUser> = new Schema<IUser>(
     },
     password: {
       type: String,
-      select: false,
     },
     googleId: {
       type: String,
@@ -37,7 +41,20 @@ const UserSchema: Schema<IUser> = new Schema<IUser>(
     },
     avatarUrl: { type: String },
     refreshToken: String,
+    passwordResetOtp: {
+      type: String,
+      default: null,
+    },
+    passwordResetOtpExpiry: {
+      type: Date,
+      default: null,
+    },
+    passwordResetAttempts: {
+      type: Number,
+      default: 0,
+    },
   },
+
   {
     timestamps: true,
   },
@@ -55,6 +72,20 @@ UserSchema.methods.comparePassword = async function (
 ): Promise<boolean> {
   if (!this.password) return false;
   return await bcrypt.compare(candidatePassword, this.password);
+};
+
+UserSchema.methods.createPasswordResetOtp = function () {
+  const otp = Math.floor(100000 + Math.random() * 999999)
+    .toString()
+    .padStart(6, '0');
+
+  const hashedOtp = hashToken(otp);
+
+  this.passwordResetOtp = hashedOtp;
+  this.passwordResetOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+  this.passwordResetAttempts = 0;
+
+  return otp;
 };
 
 const User = mongoose.model<IUser>('User', UserSchema);

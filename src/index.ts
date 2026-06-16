@@ -7,6 +7,8 @@ import logger from './utils/logger.js';
 import { startAnalyticsWorker } from './worker/analytics.worker.js';
 import { startUrlMigrationWorker } from './worker/urlmigration.worker.js';
 
+import './worker/email.worker.js';
+
 const startServer = async () => {
   await connectDb();
 

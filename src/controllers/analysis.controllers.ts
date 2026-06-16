@@ -11,29 +11,24 @@ class AnalysisController {
       await AnalysisServices.getAnalysisByShortCode(shortCode);
 
     res.status(200).json(
-      ApiResponse.success(
-        {
-          results: analysisData.length,
-          data: analysisData,
-        },
-        'Analysis retrieved successfully',
-      ),
+      ApiResponse.success({
+        results: analysisData.length,
+        data: analysisData,
+      }),
     );
   });
 
   getAnalysisByTopCountries = catchAsync(async (req, res) => {
     const { shortCode } = req.params;
-    const analysisData =
-      await AnalysisServices.getAnalysisByTopCountries(shortCode as UpdateShortCodeDto);
+    const analysisData = await AnalysisServices.getAnalysisByTopCountries(
+      shortCode as UpdateShortCodeDto,
+    );
 
     res.status(200).json(
-      ApiResponse.success(
-        {
-          results: analysisData.length,
-          data: analysisData,
-        },
-        'Top countries analysis retrieved successfully',
-      ),
+      ApiResponse.success({
+        results: analysisData.length,
+        data: analysisData,
+      }),
     );
   });
 
@@ -43,30 +38,23 @@ class AnalysisController {
       await AnalysisServices.getAnalysisByTopDevices(shortCode);
 
     res.status(200).json(
-      ApiResponse.success(
-        {
-          results: analysisData.length,
-          data: analysisData,
-        },
-        'Top devices analysis retrieved successfully',
-      ),
+      ApiResponse.success({
+        results: analysisData.length,
+        data: analysisData,
+      }),
     );
   });
 
   getAnalysisByTopBrowsers = catchAsync(async (req, res) => {
     const { shortCode } = req.params;
-    const analysisData = await AnalysisServices.getAnalysisByTopBrowsers(
-      shortCode
-    );
+    const analysisData =
+      await AnalysisServices.getAnalysisByTopBrowsers(shortCode);
 
     res.status(200).json(
-      ApiResponse.success(
-        {
-          results: analysisData.length,
-          data: analysisData,
-        },
-        'Top browsers analysis retrieved successfully',
-      ),
+      ApiResponse.success({
+        results: analysisData.length,
+        data: analysisData,
+      }),
     );
   });
 
@@ -77,13 +65,10 @@ class AnalysisController {
     );
 
     res.status(200).json(
-      ApiResponse.success(
-        {
-          results: analysisData.length,
-          data: analysisData,
-        },
-        'Top operating systems analysis retrieved successfully',
-      ),
+      ApiResponse.success({
+        results: analysisData.length,
+        data: analysisData,
+      }),
     );
   });
 
@@ -94,13 +79,10 @@ class AnalysisController {
     );
 
     res.status(200).json(
-      ApiResponse.success(
-        {
-          results: analysisData.length,
-          data: analysisData,
-        },
-        'Top referrers analysis retrieved successfully',
-      ),
+      ApiResponse.success({
+        results: analysisData.length,
+        data: analysisData,
+      }),
     );
   });
 }

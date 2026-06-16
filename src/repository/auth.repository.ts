@@ -12,7 +12,7 @@ class AuthRepository {
   }
 
   async findByEmail(email: string) {
-    return await User.findOne({ email }).select('+password');
+    return await User.findOne({ email });
   }
 
   async findById(id: string) {
@@ -30,6 +30,20 @@ class AuthRepository {
   async findByRefreshToken(refreshToken: string) {
     return await User.findOne({ refreshToken });
   }
+
+  async findByOtp(otp: string) {
+    return await User.findOne({
+      passwordResetOtp: otp,
+      passwordResetOtpExpiry: { $gt: new Date() },
+    });
+  }
+
+  async incrementResetAttempts(userId: string): Promise<void> {
+  await User.updateOne(
+    { _id: userId },
+    { $inc: { passwordResetAttempts: 1 } }
+  );
+}
 }
 
 export default new AuthRepository();

@@ -8,6 +8,7 @@ import {
 } from '../dtos/url.dto.js';
 import { authOptional } from '../middlewares/authenticate.middleware.js';
 import { assignAnonymousId } from '../middlewares/assignAnonymousId.js';
+import { urlRateLimiter } from '../middlewares/url.rateLimiter.middleware.js';
 
 const router = express.Router();
 
@@ -15,6 +16,7 @@ router.post(
   '/shorten',
   authOptional,
   assignAnonymousId,
+  urlRateLimiter,
   validate(createUrlSchema),
   urlControllers.createShortUrl,
 );
