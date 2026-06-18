@@ -13,9 +13,7 @@ import urlRouter from './routers/url.routers.js';
 import analysisRouter from './routers/analysis.routers.js';
 import userRouter from './routers/auth.router.js';
 
-
 import './config/passport-config.js';
-
 
 const app = express();
 
@@ -36,14 +34,12 @@ app.get('/health/live', (req, res) => {
   const start = Date.now();
 
   res.status(200).json(
-    ApiResponse.success(
-      {
-        status: 'alive',
-        uptime: Math.round(process.uptime()),
-        responseTime: `${Date.now() - start}ms`,
-        timestamp: new Date().toISOString(),
-      },
-    ),
+    ApiResponse.success({
+      status: 'alive',
+      uptime: Math.round(process.uptime()),
+      responseTime: `${Date.now() - start}ms`,
+      timestamp: new Date().toISOString(),
+    }),
   );
 });
 
@@ -58,25 +54,21 @@ app.get('/health/ready', async (req, res) => {
     await mongoose.connection.db.admin().ping();
 
     res.status(200).json(
-      ApiResponse.success(
-        {
-          status: 'ready',
-          database:
-            mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-          uptime: Math.round(process.uptime()),
-          responseTime: `${Date.now() - start}ms`,
-          timestamp: new Date().toISOString(),
-        },
-      ),
+      ApiResponse.success({
+        status: 'ready',
+        database:
+          mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+        uptime: Math.round(process.uptime()),
+        responseTime: `${Date.now() - start}ms`,
+        timestamp: new Date().toISOString(),
+      }),
     );
   } catch (error) {
     logger.error({ error }, 'Health check failed');
 
-    return res.status(503).json(ApiResponse.error('Trimly is not ready', 503));
+    return res.status(503).json(ApiResponse.error('Trimly is not ready'));
   }
 });
-
-
 
 app.use('/api/v1/urls', urlRouter);
 app.use('/api/v1/analysis', analysisRouter);

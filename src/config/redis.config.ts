@@ -1,4 +1,4 @@
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import logger from '../utils/logger.js';
 import dotenv from 'dotenv';
 
@@ -18,9 +18,12 @@ const redis = new Redis({
   host: process.env.REDIS_HOST,
   port: Number(process.env.REDIS_PORT),
   password: process.env.REDIS_PASSWORD,
+  maxRetriesPerRequest: null,
 });
 
-// const redis = new Redis(process.env.REDIS_URL);
+// const redis = new Redis(process.env.REDIS_URL as string, {
+//   maxRetriesPerRequest: null,
+// } as any);
 
 redis.on('connect', () => {
   logger.info('Connected to Redis successfully');

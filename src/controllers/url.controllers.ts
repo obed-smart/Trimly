@@ -13,7 +13,7 @@ class UrlController {
       anonymousId: req.anonymousId ?? null,
     };
 
-  logger.debug({ url, reqBody : 'Creating short URL with the provided data' });
+    logger.debug({ url, reqBody }, 'Creating short URL with the provided data');
     const result = await UrlService.createShortUrl(url, reqBody);
 
     logger.info('shortCode created successfully');
@@ -27,14 +27,11 @@ class UrlController {
   redirectToOriginalUrl = catchAsync(async (req: Request, res: Response) => {
     const data = {
       userAgent: req.headers['user-agent'] || '',
-
       referrer: req.headers['referer'] || '',
-
       ipAddress: req.ip || '',
-
-      shortCode: req.params.shortCode,
+      shortCode: req.params.shortCode as string,
+      urlId: req.params.shortCode as string,
     };
-
     const urlData = await UrlService.redirectToOriginalUrl(data);
 
     logger.info('Redirecting to original URL');

@@ -7,8 +7,7 @@ export async function syncToDb() {
   const items = await redis.lrange('analysis:queues', 0, 99);
 
   if (items.length > 0) {
-    const parsed = items.map(JSON.parse);
-
+    const parsed = items.map((item) => JSON.parse(item));
 
     // Bulk insert analysis data into the database
     await analysisRepository.createAnalysis(parsed);
@@ -17,22 +16,26 @@ export async function syncToDb() {
   }
 
   // Sync click counts from Redis to the database
-  
-  const clickKeys = await redis.sca('url:*:clicks');
 
-  logger.info(`Found ${clickKeys.length} click keys to sync`);
+  const stream = redis.scanStream({ match: 'url:*:clicks', count: 100 });
 
-  for (const key of clickKeys) {
-    const clicks = await redis.get(key);
+  for await (const keys of stream) {
+    if (keys.length === 0) continue;
 
-    if (!clicks) continue;
+    const pipeline = redis.pipeline();
+    keys.forEach((key: any) => pipeline.get(key));
+    const results = await pipeline.exec();
 
-    const shortCode = key.split(':')[1];
+    const deletePipeline = redis.pipeline();
 
-    // Update click count in the database
-    await urlRepository.incrementClickCount(shortCode, Number(clicks));
+    results?.forEach(([err, clicks], i) => {
+      if (err || !clicks) return;
 
-    await redis.del(key);
+      const shortCode = keys[i].split(':')[1];
+      urlRepository.incrementClickCount(shortCode, Number(clicks));
+      deletePipeline.del(keys[i]);
+    });
+
+    await deletePipeline.exec();
   }
 }
-

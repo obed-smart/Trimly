@@ -4,7 +4,11 @@ import UrlShorten, { IUrlShorten } from '../model/urlShorten.model.js';
 
 class UrlShortenRepository {
   async createUrlShorten(data: CreateUrlDto) {
-    return await UrlShorten.create(data);
+    const cleanedData = Object.fromEntries(
+      Object.entries(data).filter(([_, value]) => value !== undefined),
+    );
+
+    return await UrlShorten.create(cleanedData as any);
   }
 
   async findByShortCode(shortCode: string) {

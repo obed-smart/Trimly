@@ -1,7 +1,7 @@
 import DeviceDetector from 'node-device-detector';
 import geoip from 'geoip-lite';
 import countries from 'i18n-iso-countries';
-import en from 'i18n-iso-countries/langs/en.json';
+import en from 'i18n-iso-countries/langs/en.json' with { type: 'json' };
 
 import AnalysisRepository from '../repository/analysis.repository.js';
 

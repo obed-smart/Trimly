@@ -26,7 +26,7 @@ const createLimiter = (options: {
         return `rl:anonymous:${req.cookies.anonymousId}`;
       }
 
-      return ipKeyGenerator(req, res);
+     return ipKeyGenerator(req.ip ?? '');
     },
     handler: (req: Request, res: Response) => {
       res.status(429).json({ message: options.message });
