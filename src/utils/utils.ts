@@ -8,6 +8,7 @@ import urlRepository from '../repository/url.repository.js';
 import redis from '../config/redis.config.js';
 import analysisRepository from '../repository/analysis.repository.js';
 import { IUser } from '../model/user.model.js';
+import authRepository from '../repository/auth.repository.js';
 
 const MAX_RETRIES = 5;
 
@@ -22,7 +23,6 @@ export const generateId = async () => {
 
       const exists = await urlRepository.shortCodeExists(secretId);
       if (!exists) {
-        logger.info({ secretId }, 'Generated unique ID:');
         return secretId;
       }
 
@@ -79,4 +79,39 @@ export const hashToken = (token: string) => {
   }
 
   return crypto.createHash('sha256').update(token).digest('hex');
+};
+
+export const generateUniqueUsername = async (displayName: string) => {
+  const usernameId = customAlphabet('abcdefghijkmnopqrstuvwxyz23456789', 4);
+
+  const cleanedName = displayName
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_')
+    .replace(/[^a-z0-9_]/g, '');
+
+  let retries = 0;
+
+  try {
+    while (retries < MAX_RETRIES) {
+      const id = usernameId();
+
+      const uniqueName = `${cleanedName}_${id}`;
+
+      const usernameExist = await authRepository.usernameExist(uniqueName);
+
+      if (!usernameExist) {
+        return uniqueName;
+      }
+      retries++;
+    }
+
+    return `${cleanedName}_${usernameId()}_${Date.now().toString().slice(-4)}`;
+  } catch (error) {
+    throw new AppError(
+      'failed when generating username from google displayName',
+      500,
+    );
+    logger.error(error);
+  }
 };

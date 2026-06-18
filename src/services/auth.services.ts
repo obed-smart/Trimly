@@ -8,7 +8,8 @@ import {
 } from '../utils/utils.js';
 import AppError from '../utils/appErros.js';
 import logger from '../utils/logger.js';
-import { emailQueue } from '../queue/  queue.js';
+import { emailQueue, urlMigrationQueue } from '../queue/  queue.js';
+import { Types } from 'mongoose';
 
 export interface ITokenResponse {
   accessToken: string;
@@ -30,8 +31,26 @@ class AuthService {
     };
   }
 
+  private urlGuestMigration(anonymousId: string, userId: Types.ObjectId) {
+    urlMigrationQueue.add(
+      'url-quest-migrations',
+      {
+        anonymousId,
+        userId,
+        createdByType: 'user',
+      },
+      {
+        attempts: 3,
+        backoff: 5000,
+      },
+    );
+  }
+
   // Implement user-related business logic here
-  async registerUser(userData: Partial<IUser>): Promise<IAuthService> {
+  async registerUser(
+    userData: Partial<IUser>,
+    anonymousId?: string,
+  ): Promise<IAuthService> {
     let user = await authRepository.userExist(
       userData.email!,
       userData.username!,
@@ -51,6 +70,12 @@ class AuthService {
     user.refreshToken = hashToken(refreshToken);
     await authRepository.save(user, false);
 
+    if (anonymousId) {
+      this.urlGuestMigration(anonymousId, user.id);
+    }
+
+    await this.addWelcomeEmailJob(user.email, user.username);
+
     return {
       user,
       accessToken,
@@ -58,11 +83,15 @@ class AuthService {
     };
   }
 
-  async login(user: IUser): Promise<ITokenResponse> {
+  async login(user: IUser, anonymousId?: string): Promise<ITokenResponse> {
     const { accessToken, refreshToken } = this.generateToken(user);
 
     user.refreshToken = hashToken(refreshToken);
     await authRepository.save(user, false);
+
+    if (anonymousId) {
+      this.urlGuestMigration(anonymousId, user.id);
+    }
 
     return {
       accessToken,
@@ -216,6 +245,53 @@ class AuthService {
         },
       },
     );
+  }
+
+  async addWelcomeEmailJob(email: string, username: string) {
+    emailQueue.add(
+      'welcome',
+      {
+        to: email,
+        subject: 'Welcome to Trimly! 🚀 Your account is ready',
+        html: `
+    <div style="font-family: sans-serif; max-width: 480px; color: #1a1a1a; line-height: 1.6; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+      <h2 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 700; color: #000000;">Welcome to Trimly, @${username}! 👋</h2>
+      <p style="margin: 0 0 16px 0; font-size: 15px; color: #374151;">We're excited to have you on board. Your account has been securely created and you're ready to get started.</p>
+      
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="http://localhost:5173/dashboard" style="background-color: #000000; color: #ffffff; padding: 12px 24px; text-decoration: none; font-size: 15px; font-weight: 600; border-radius: 6px; display: inline-block;">Go to Your Dashboard</a>
+      </div>
+
+      <p style="margin: 16px 0 0 0; font-size: 13px; color: #6b7280; border-top: 1px solid #f3f4f6; padding-top: 16px;">If you didn't create this account, please disregard this email or contact support.</p>
+    </div>
+  `,
+        // Guarantees each new sign-up only gets exactly one welcome email processed
+        idempotencyKey: `welcome/${email}`,
+      },
+      {
+        attempts: 5,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+      },
+    );
+  }
+
+  async googleCallback(user: IUser, isNewUser: boolean) {
+    const { accessToken, refreshToken } = this.generateToken(user);
+
+    user.refreshToken = hashToken(refreshToken);
+    await authRepository.save(user, false);
+
+    if (isNewUser) {
+      await this.addWelcomeEmailJob(user.email, user.username);
+    }
+
+    return {
+      accessToken,
+      refreshToken,
+    };
   }
 }
 

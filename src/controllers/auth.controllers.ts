@@ -7,6 +7,7 @@ import catchAsync from '../utils/catchAsync.js';
 import { IUser } from '../model/user.model.js';
 import { urlMigrationQueue } from '../queue/  queue.js';
 import logger from '../utils/logger.js';
+import authServices from '../services/auth.services.js';
 
 class UserController {
   private setCookies(res: Response, accessToken: string, refreshToken: string) {
@@ -25,28 +26,7 @@ class UserController {
     });
   }
 
-  private urlGuestMigration(
-    req: Request,
-    res: Response,
-    userId: Types.ObjectId,
-  ) {
-    if (req.cookies['anonymousId']) {
-      const anonymousId = req.cookies['anonymousId'];
-
-      urlMigrationQueue.add(
-        'url-quest-migrations',
-        {
-          anonymousId,
-          userId,
-          createdByType: 'user',
-        },
-        {
-          attempts: 3,
-          backoff: 5000,
-        },
-      );
-    }
-
+  private clearGuestCookie(res: Response) {
     res.clearCookie('anonymousId', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -59,9 +39,11 @@ class UserController {
       req.body,
     );
 
+    const anonymousId = req.cookies['anonymousId'];
+
     this.setCookies(res, accessToken, refreshToken);
 
-    this.urlGuestMigration(req, res, user.id);
+    if (anonymousId) this.clearGuestCookie(res);
 
     res
       .status(201)
@@ -70,12 +52,13 @@ class UserController {
 
   login = catchAsync(async (req: Request, res: Response) => {
     const user = req.user as IUser;
+    const anonymousId = req.cookies['anonymousId'];
 
     const { accessToken, refreshToken } = await userServices.login(user);
 
     this.setCookies(res, accessToken, refreshToken);
 
-    this.urlGuestMigration(req, res, user.id);
+    if (anonymousId) this.clearGuestCookie(res);
 
     res
       .status(200)
@@ -137,6 +120,28 @@ class UserController {
     await userServices.verifyOtpAndReset(email, otp, password);
 
     res.status(200).json(ApiResponse.success('Password reset successful'));
+  });
+
+  //   => {
+  //   const user = req.user as User;
+  //   const { accessToken } = authService.generateTokens(user);
+  //   res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${accessToken}`);
+  // }
+
+  googleCallback = catchAsync(async (req: Request, res: Response) => {
+    const { user, isNewUser } = req.user as Express.PassportCustomUser;
+
+    const anonymousId = req.cookies['anonymousId'];
+
+    const { accessToken, refreshToken } = await authServices.googleCallback(
+      user,
+      isNewUser,
+    );
+
+    this.setCookies(res, accessToken, refreshToken);
+    if (anonymousId) this.clearGuestCookie(res);
+
+    res.status(200).send('Success');
   });
 }
 

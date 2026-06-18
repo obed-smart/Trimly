@@ -31,6 +31,10 @@ class AuthRepository {
     return await User.findOne({ refreshToken });
   }
 
+  async findByGoogleId(googleId: string) {
+    return await User.findOne({ googleId });
+  }
+
   async findByOtp(otp: string) {
     return await User.findOne({
       passwordResetOtp: otp,
@@ -39,11 +43,15 @@ class AuthRepository {
   }
 
   async incrementResetAttempts(userId: string): Promise<void> {
-  await User.updateOne(
-    { _id: userId },
-    { $inc: { passwordResetAttempts: 1 } }
-  );
-}
+    await User.updateOne(
+      { _id: userId },
+      { $inc: { passwordResetAttempts: 1 } },
+    );
+  }
+
+  async usernameExist(username: string) {
+    return await User.exists({ username });
+  }
 }
 
 export default new AuthRepository();
