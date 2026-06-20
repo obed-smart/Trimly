@@ -2,11 +2,11 @@ import { Job, Worker } from 'bullmq';
 import logger from '../utils/logger.js';
 import bullmqConnection from '../config/bullmq.connection.js';
 import { ISendEmailPayload, sendMail } from '../utils/emails.js';
+import { jobsFailedCounter, jobsProcessedCounter } from '../config/matries.js';
 
 export const worker = new Worker(
   'email-queue',
   async (job: Job<ISendEmailPayload>) => {
-
     logger.info(`[Email Worker] proccessing message dispatch to Job ${job.id}`);
 
     await sendMail(job.data);
@@ -22,6 +22,7 @@ worker.on('completed', (job) => {
   logger.info(
     ` [Email Worker success] Email Job ${job.id} completed successfully.`,
   );
+  jobsProcessedCounter.inc({ job_type: 'email_job' });
 });
 
 worker.on('failed', (job, err: Error) => {
@@ -32,4 +33,5 @@ worker.on('failed', (job, err: Error) => {
     },
     ` [Email Worker failed] Email Job ${job?.id} failed.`,
   );
+  jobsFailedCounter.inc({ job_type: 'email_job' });
 });

@@ -10,6 +10,7 @@ import AppError from '../utils/appErros.js';
 import logger from '../utils/logger.js';
 import { emailQueue, urlMigrationQueue } from '../queue/  queue.js';
 import { Types } from 'mongoose';
+import { createdUserCounter } from '../config/matries.js';
 
 export interface ITokenResponse {
   accessToken: string;
@@ -75,6 +76,7 @@ class AuthService {
     }
 
     await this.addWelcomeEmailJob(user.email, user.username);
+    createdUserCounter.inc({ auth_method: 'local' });
 
     return {
       user,
@@ -286,6 +288,7 @@ class AuthService {
 
     if (isNewUser) {
       await this.addWelcomeEmailJob(user.email, user.username);
+      createdUserCounter.inc({ auth_method: 'google' });
     }
 
     return {

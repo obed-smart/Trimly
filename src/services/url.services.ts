@@ -6,6 +6,13 @@ import { CreateUrlDto } from '../dtos/url.dto.js';
 import logger from '../utils/logger.js';
 import redis from '../config/redis.config.js';
 import mongoose from 'mongoose';
+import {
+  cacheHitsCounter,
+  cacheMissesCounter,
+  createdUrlLinks,
+  redirectRequestCounter,
+  redisErrorCounter,
+} from '../config/matries.js';
 
 export interface IreqBody {
   userId: mongoose.Types.ObjectId | null;
@@ -57,6 +64,8 @@ class UrlService {
       await redis.expire(cacheKey, 30 * 24 * 60 * 60);
     }
 
+    createdUrlLinks.inc();
+
     return url;
   }
 
@@ -75,24 +84,29 @@ class UrlService {
     if (cachedData) {
       urlData = JSON.parse(cachedData);
       logger.debug({ cacheHit: true }, 'Cache hit for short code:');
+      cacheHitsCounter.inc();
     } else {
       urlData = await urlRepository.findByShortCode(data.shortCode);
       if (!urlData) {
         throw new AppError('Short URL not found', 404);
       }
-
-      await redis.set(
-        cacheKey,
-        JSON.stringify({
-          _id: urlData._id,
-          originalUrl: urlData.originalUrl,
-          shortCode: urlData.shortCode,
-        }),
-        'EX',
-        86400,
-      );
+      try {
+        await redis.set(
+          cacheKey,
+          JSON.stringify({
+            _id: urlData._id,
+            originalUrl: urlData.originalUrl,
+            shortCode: urlData.shortCode,
+          }),
+          'EX',
+          86400,
+        );
+      } catch (error) {
+        redisErrorCounter.inc({ operation: 'set' });
+      }
 
       logger.debug({ cacheHit: false }, 'Cache miss for short code:');
+      cacheMissesCounter.inc();
     }
 
     await AnalysisServices.createAnalysis({
@@ -102,6 +116,8 @@ class UrlService {
       shortCode: data.shortCode,
       urlId: urlData._id.toString() as string,
     });
+
+    redirectRequestCounter.inc();
 
     return urlData;
   }

@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import AppError from '../utils/appErros.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { errorCounter } from '../config/matries.js';
 
 type ErrorRequestHandler = (
   err: unknown,
@@ -16,12 +17,28 @@ const sendErrorDev = (err: any, res: Response) => {
   });
 };
 
-const sendErrorProd = (err: any | string, res: Response) => {
+const sendErrorProd = (err: any | string, req: Request, res: Response) => {
+  const route = req.route?.path || req.path;
+
   if (err.isOperational) {
+    errorCounter.inc({
+      method: req.method,
+      route,
+      status_code: String(err.statusCode),
+      type: 'operational',
+    });
+
     return res
       .status(err.statusCode)
       .json(ApiResponse.error({ status: err.status, message: err.message }));
   }
+
+  errorCounter.inc({
+    method: req.method,
+    route,
+    status_code: String(err.statusCode),
+    type: 'programming',
+  });
 };
 
 const errorMiddleware: ErrorRequestHandler = (
@@ -43,7 +60,7 @@ const errorMiddleware: ErrorRequestHandler = (
   if (process.env.NODE_ENV === 'development') {
     sendErrorDev(error, res);
   } else {
-    sendErrorProd(error, res);
+    sendErrorProd(error, req, res);
   }
 };
 

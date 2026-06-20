@@ -3,6 +3,7 @@ import logger from '../utils/logger.js';
 import bullmqConnection from '../config/bullmq.connection.js';
 import { IurlMigrationJobData } from '../queue/  queue.js';
 import urlRepository from '../repository/url.repository.js';
+import { jobsFailedCounter, jobsProcessedCounter } from '../config/matries.js';
 
 export async function startUrlMigrationWorker() {
   const worker = new Worker<IurlMigrationJobData>(
@@ -31,6 +32,7 @@ export async function startUrlMigrationWorker() {
 
   worker.on('completed', (job) => {
     logger.info(`Job ${job.id} completed successfully.`);
+    jobsProcessedCounter.inc({ job_type: 'url_migration_job' });
   });
 
   worker.on('failed', (job, err: Error) => {
@@ -41,5 +43,7 @@ export async function startUrlMigrationWorker() {
       },
       `[Queue Worker] for url migration ${job?.id} failed`,
     );
+
+    jobsFailedCounter.inc({ job_type: 'url_migration_job' });
   });
 }

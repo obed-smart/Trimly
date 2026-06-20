@@ -12,12 +12,16 @@ import { ApiResponse } from './utils/apiResponse.js';
 import urlRouter from './routers/url.routers.js';
 import analysisRouter from './routers/analysis.routers.js';
 import userRouter from './routers/auth.router.js';
+import metricsRoutes from './routers/metrics.routes.js';
 
 import './config/passport-config.js';
+import { metricsAuth } from './middlewares/metricsAuth.middlesware.js';
+import { metricsMiddleware } from './middlewares/metrics.middleware.js';
 
 const app = express();
 
 app.use(helmet());
+app.use(metricsMiddleware)
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -29,6 +33,8 @@ app.use(passport.initialize());
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
+
+app.use('/metrics', metricsAuth, metricsRoutes);
 
 app.get('/health/live', (req, res) => {
   const start = Date.now();
