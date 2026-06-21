@@ -107,6 +107,7 @@ class UrlService {
 
       logger.debug({ cacheHit: false }, 'Cache miss for short code:');
       cacheMissesCounter.inc();
+      
     }
 
     await AnalysisServices.createAnalysis({
