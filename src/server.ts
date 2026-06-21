@@ -1,10 +1,9 @@
-import express, { NextFunction } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import morgan from 'morgan';
 import helmet from 'helmet';
 import passport from 'passport';
-import { Request, Response } from 'express';
 
 import GlobalEroorHandler from './middlewares/globalError.middleware.js';
 import AppError from './utils/appErros.js';
@@ -18,6 +17,7 @@ import metricsRoutes from './routers/metrics.routes.js';
 import './config/passport-config.js';
 import { metricsAuth } from './middlewares/metricsAuth.middlesware.js';
 import { metricsMiddleware } from './middlewares/metrics.middleware.js';
+import { globalLimiter } from './config/rateLimiter.js';
 
 const app = express();
 
@@ -76,6 +76,19 @@ app.get('/health/ready', async (req: Request, res: Response) => {
     return res.status(503).json(ApiResponse.error('Trimly is not ready'));
   }
 });
+
+app.get('/', (req: Request, res: Response) => {
+  res.status(200).json(
+    ApiResponse.success({
+      success: true,
+      service: 'Trimly API',
+      version: 'v1',
+      status: 'running',
+    }),
+  );
+});
+
+app.use('/api/v1', globalLimiter);
 
 app.use('/api/v1/urls', urlRouter);
 app.use('/api/v1/analysis', analysisRouter);
