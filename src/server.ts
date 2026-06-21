@@ -1,9 +1,10 @@
-import express from 'express';
+import express, { NextFunction } from 'express';
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import morgan from 'morgan';
 import helmet from 'helmet';
 import passport from 'passport';
+import { Request, Response } from 'express';
 
 import GlobalEroorHandler from './middlewares/globalError.middleware.js';
 import AppError from './utils/appErros.js';
@@ -21,7 +22,7 @@ import { metricsMiddleware } from './middlewares/metrics.middleware.js';
 const app = express();
 
 app.use(helmet());
-app.use(metricsMiddleware)
+app.use(metricsMiddleware);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -36,7 +37,7 @@ if (process.env.NODE_ENV === 'development') {
 
 app.use('/metrics', metricsAuth, metricsRoutes);
 
-app.get('/health/live', (req, res) => {
+app.get('/health/live', (req: Request, res: Response) => {
   const start = Date.now();
 
   res.status(200).json(
@@ -49,7 +50,7 @@ app.get('/health/live', (req, res) => {
   );
 });
 
-app.get('/health/ready', async (req, res) => {
+app.get('/health/ready', async (req: Request, res: Response) => {
   const start = Date.now();
 
   try {
@@ -80,7 +81,7 @@ app.use('/api/v1/urls', urlRouter);
 app.use('/api/v1/analysis', analysisRouter);
 app.use('/api/v1/auth', userRouter);
 
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   throw new AppError(`Can't find ${req.originalUrl} on this server!`, 404);
 });
 
