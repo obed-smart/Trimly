@@ -51,21 +51,6 @@ export const totalUrlsGauge = new client.Gauge({
   },
 });
 
-
-export const queueWaitingJobsGauge = new client.Gauge({
-  name: 'Trimly_queue_waiting_jobs',
-  help: 'Number of jobs currently waiting in the queue',
-  labelNames: ['queue'],
-  registers: [register],
-  async collect() {
-    for await (const [name, queue] of Object.entries(queues)) {
-      const waitingCount = await queue.getWaitingCount();
-      this.set({ queue: name }, waitingCount);
-    }
-  },
-});
-
-
 export const createdUserCounter = new client.Counter({
   name: 'new_users_total',
   help: 'Total number of user registered from set up',
@@ -99,6 +84,18 @@ const queues = {
   url_migration_queue: urlMigrationQueue,
 };
 
+export const queueWaitingJobsGauge = new client.Gauge({
+  name: 'Trimly_queue_waiting_jobs',
+  help: 'Number of jobs currently waiting in the queue',
+  labelNames: ['queue'],
+  registers: [register],
+  async collect() {
+    for await (const [name, queue] of Object.entries(queues)) {
+      const waitingCount = await queue.getWaitingCount();
+      this.set({ queue: name }, waitingCount);
+    }
+  },
+});
 
 export const jobsProcessedCounter = new client.Counter({
   name: 'jobs_processed_total',

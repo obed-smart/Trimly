@@ -4,9 +4,10 @@ dotenv.config();
 import mongoose from 'mongoose';
 import logger from '../utils/logger.js';
 
-// const dbUrl = process.env.DATABASE_PROD as string;
-
-const dbUrl = process.env.DATABASE_LOCAL as string;
+const dbUrl =
+  process.env.NODE_ENV === 'production'
+    ? (process.env.DATABASE_PROD as string)
+    : (process.env.DATABASE_LOCAL as string);
 
 const connectDb = async () => {
   logger.info('connecting to the Database....');
