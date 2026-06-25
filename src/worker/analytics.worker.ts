@@ -9,12 +9,17 @@ export async function startAnalyticsWorker() {
   const worker = new Worker(
     'analytics',
 
-    async () => {
-      await syncToDb();
+    async (job: any) => {
+      if (job.name === 'flush-analytics') {
+        logger.info(`Starting background database sync [Job ID: ${job.id}] 🚚`);
+        await syncToDb();
+        logger.info(`Analytics batch sync complete [Job ID: ${job.id}] ✅`);
+      }
     },
 
     {
       connection: bullmqConnection,
+      concurrency: 1,
     },
   );
 
@@ -31,7 +36,10 @@ export async function startAnalyticsWorker() {
       },
       'BullMQ worker failed',
     );
+    jobsFailedCounter.inc({ job_type: 'analytics_flush_job' });
   });
 
-  jobsFailedCounter.inc({ job_type: 'analytics_flush_job' });
+  worker.on('error', (err: Error) => {
+    logger.error({ err }, 'Critical BullMQ Worker error:');
+  });
 }

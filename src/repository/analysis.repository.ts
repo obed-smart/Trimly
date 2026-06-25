@@ -1,10 +1,9 @@
-
 import { AnalysisInput } from '../dtos/analysis.dto.js';
 import Analysis from '../model/analysis.model.js';
 import { UpdateShortCodeDto } from '../dtos/url.dto.js';
 
 class AnalysisRepository {
-  async createAnalysis(AnalysisData: AnalysisInput[]) {
+  async createAnalysis(AnalysisData: Partial<AnalysisInput[]>) {
     return await Analysis.insertMany(AnalysisData, { ordered: false });
   }
 

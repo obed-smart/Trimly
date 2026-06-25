@@ -107,18 +107,19 @@ class UrlService {
 
       logger.debug({ cacheHit: false }, 'Cache miss for short code:');
       cacheMissesCounter.inc();
-      
-
-      
     }
 
-    await AnalysisServices.createAnalysis({
+    AnalysisServices.createAnalysis({
       userAgent: data.userAgent,
       referrer: data.referrer as string,
       ipAddress: data.ipAddress as string,
       shortCode: data.shortCode,
       urlId: urlData._id.toString() as string,
+    }).catch((err) => {
+      logger.error({ err }, 'Failed to stage raw click metrics to Redis');
     });
+
+    
 
     redirectRequestCounter.inc();
 

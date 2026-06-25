@@ -27,6 +27,7 @@ export async function startUrlMigrationWorker() {
     },
     {
       connection: bullmqConnection,
+      concurrency: 1,
     },
   );
 

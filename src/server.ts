@@ -88,7 +88,7 @@ app.get('/', (req: Request, res: Response) => {
   );
 });
 
-app.use('/api/v1', globalLimiter);
+// app.use('/api/v1', globalLimiter);
 
 app.use('/api/v1/urls', urlRouter);
 app.use('/api/v1/analysis', analysisRouter);

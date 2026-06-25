@@ -1,26 +1,9 @@
-import DeviceDetector from 'node-device-detector';
-import geoip from 'geoip-lite';
-import countries from 'i18n-iso-countries';
-import en from 'i18n-iso-countries/langs/en.json' with { type: 'json' };
-
 import AnalysisRepository from '../repository/analysis.repository.js';
-
-countries.registerLocale(en);
 
 import logger from '../utils/logger.js';
 import redis from '../config/redis.config.js';
 import { UpdateShortCodeDto } from '../dtos/url.dto.js';
 import { analyticsQueue } from '../queue/  queue.js';
-
-const detector = new (DeviceDetector as any)({
-  clientIndexes: true,
-  deviceIndexes: true,
-  osIndexes: true,
-  deviceAliasCode: false,
-  deviceTrusted: false,
-  deviceInfo: false,
-  maxUserAgentSize: 500,
-});
 
 export type AnalysisContext = {
   shortCode: string;
@@ -32,63 +15,39 @@ export type AnalysisContext = {
 
 class AnalysisService {
   async createAnalysis(context: AnalysisContext) {
-    const result = detector.detect(context.userAgent);
-
-    console.log(context.ipAddress, 'Context IP address');
-
-    const geo = geoip.lookup('105.112.125.252');
-
-    const countryName = countries.getName(geo?.country as string, 'en');
-
-    const browser = result.client?.name || 'unknown';
-    const device = result.device?.type || 'desktop';
-    const os = result.os?.name || 'unknown';
-    const referrer = context.referrer || 'direct';
-
-    const analysisData = {
+    const rawPayload = {
       urlId: context.urlId || '',
       shortCode: context.shortCode,
-      referrer: referrer,
-      ipAddress: context.ipAddress || null,
-      country: countryName || null,
-      city: geo?.city || null,
-      device: device,
-      browser: browser,
-      os: os,
-      latitude: geo?.ll[0],
-      longitude: geo?.ll[1],
+      referrer: context.referrer || 'direct',
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+      timestamp: Date.now(),
     };
 
     const pipeline = redis.pipeline();
-
-    pipeline.rpush(`analysis:queues`, JSON.stringify(analysisData));
-
+    pipeline.rpush(`analysis:queues`, JSON.stringify(rawPayload));
     pipeline.incr(`url:clicks:${context.shortCode}`);
 
-    pipeline.hincrby(
-      `analysis:${context.shortCode}:countries`,
-      countryName || 'unknown',
-      1,
-    );
+    // inclrement a buffer counter to help track the munber of analysis stored (1k max before flush)
+    pipeline.incr(`analysis:buffer:count`);
 
-    pipeline.hincrby(`analysis:${context.shortCode}:device`, device, 1);
-    pipeline.hincrby(`analysis:${context.shortCode}:browser`, browser, 1);
-    pipeline.hincrby(`analysis:${context.shortCode}:os`, os, 1);
-    pipeline.hincrby(`analysis:${context.shortCode}:referrer`, referrer, 1);
+    const results = await pipeline.exec();
 
-    await pipeline.exec();
+    const currentBufferCount = Number(results?.[2]?.[1] || 0);
 
-    await analyticsQueue.add(
-      'flush-analytics',
+    if (currentBufferCount >= 1000) {
+      await redis.set(`analysis:buffer:count`, 0);
 
-      {},
-
-      {
-        delay: 30000,
-
-        jobId: 'analytics-flush',
-      },
-    );
+      await analyticsQueue.add(
+        'flush-analytics',
+        {},
+        {
+          jobId: `flush-${Date.now()}`,
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
+    }
   }
 
   async getAnalysisByShortCode(shortCode: UpdateShortCodeDto) {

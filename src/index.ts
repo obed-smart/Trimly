@@ -8,12 +8,14 @@ import { startAnalyticsWorker } from './worker/analytics.worker.js';
 import { startUrlMigrationWorker } from './worker/urlmigration.worker.js';
 
 import './worker/email.worker.js';
+import { setupAnalyticsCron } from './services/flushAnalytics.js';
 
 const startServer = async () => {
   await connectDb();
 
   await startAnalyticsWorker();
   await startUrlMigrationWorker();
+  await setupAnalyticsCron();
 
   const PORT = process.env.PORT || 3000;
 
